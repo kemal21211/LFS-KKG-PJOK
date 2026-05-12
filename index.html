@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LFS Scoreboard - Publik</title>
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Montserrat:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -84,6 +82,18 @@
 
         .label { color: #64748b; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 2px; }
 
+        .dl-container { text-align: center; margin-bottom: 15px; }
+        .btn-download { 
+            display: inline-block;
+            background: var(--accent-blue); 
+            color: var(--bg-dark); 
+            padding: 10px 20px; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
         iframe { width: 100%; height: 80vh; border-radius: 15px; border: none; background: white; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
@@ -115,10 +125,16 @@
     </div>
 
     <div id="buku" class="section">
+        <div class="dl-container">
+            <a id="btn-dl-buku" href="#" target="_blank" class="btn-download">📥 DOWNLOAD BUKU ACARA</a>
+        </div>
         <iframe id="frame-buku" src=""></iframe>
     </div>
 
     <div id="result" class="section">
+        <div class="dl-container">
+            <a id="btn-dl-result" href="#" target="_blank" class="btn-download">📥 DOWNLOAD HASIL LOMBA</a>
+        </div>
         <iframe id="frame-result" src=""></iframe>
     </div>
 </div>
@@ -138,13 +154,37 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // Fungsi konversi link GDrive ke Direct/Preview bypass login
+    function getDirectLink(url, mode = 'view') {
+        if (url && url.includes('drive.google.com')) {
+            const match = url.match(/\/d\/(.+?)\/(view|edit|usp)/);
+            if (match && match[1]) {
+                return mode === 'view' 
+                    ? `https://drive.google.com/uc?export=view&id=${match[1]}`
+                    : `https://drive.google.com/uc?export=download&id=${match[1]}`;
+            }
+        }
+        return url;
+    }
+
     db.ref("scoreboard").on("value", (snapshot) => {
         const data = snapshot.val();
         if(data) {
             document.getElementById('disp-panggil').innerText = (data.p_ev || "000") + " / " + (data.p_sr || "00");
             document.getElementById('disp-tanding').innerText = (data.t_ev || "000") + " / " + (data.t_sr || "00");
-            if(data.link_buku) document.getElementById('frame-buku').src = data.link_buku;
-            if(data.link_result) document.getElementById('frame-result').src = data.link_result;
+            
+            if(data.link_buku) {
+                const viewLink = getDirectLink(data.link_buku, 'view');
+                const dlLink = getDirectLink(data.link_buku, 'download');
+                document.getElementById('frame-buku').src = viewLink;
+                document.getElementById('btn-dl-buku').href = dlLink;
+            }
+            if(data.link_result) {
+                const viewLink = getDirectLink(data.link_result, 'view');
+                const dlLink = getDirectLink(data.link_result, 'download');
+                document.getElementById('frame-result').src = viewLink;
+                document.getElementById('btn-dl-result').href = dlLink;
+            }
         }
     });
 
